@@ -1,0 +1,47 @@
+name: Static Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  flake8:
+    name: Flake8 (style)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install Flake8
+        run: python -m pip install flake8
+      - name: Run Flake8
+        run: flake8 bank_account_system.py
+
+  bandit:
+    name: Bandit (security)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install Bandit
+        run: python -m pip install bandit
+      - name: Run Bandit
+        run: bandit -r bank_account_system.py
+
+  pylint:
+    name: Pylint (quality)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install Pylint
+        run: python -m pip install pylint
+      - name: Run Pylint (fail below 9.5)
+        run: pylint --fail-under=9.5 bank_account_system.py
