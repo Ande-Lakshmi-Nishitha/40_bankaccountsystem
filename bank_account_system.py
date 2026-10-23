@@ -4,45 +4,49 @@ import hashlib
 import os
 import secrets
 
-account_data = {}
+ACCOUNT_DATA = {}
+SERVICE_FEE = 2.50
 
 
-def createAccount(acc_id, name, initial_deposit=0, transactions=[]):
-    if acc_id in account_data:
+def create_account(acc_id, name, initial_deposit=0, transactions=None):
+    """Create a new account and log it. Return False if the ID exists."""
+    if transactions is None:
+        transactions = []
+    if acc_id in ACCOUNT_DATA:
         return False
-    account_data[acc_id] = {"name": name, "balance": initial_deposit}
+    ACCOUNT_DATA[acc_id] = {"name": name, "balance": initial_deposit}
     transactions.append(
-        "Created %s with initial balance %d" % (acc_id, initial_deposit)
+        f"Created {acc_id} with initial balance {initial_deposit}"
     )
     return True
 
 
 def deposit(acc_id, amount):
-    try:
-        account_data[acc_id]["balance"] += amount
-    except KeyError:
+    """Add a positive amount to an account. Return True on success."""
+    if amount <= 0 or acc_id not in ACCOUNT_DATA:
         return False
+    ACCOUNT_DATA[acc_id]["balance"] += amount
     return True
 
 
 def withdraw(acc_id, amount):
-    service_fee = 2.50
-    if account_data.get(acc_id) is None:
+    """Withdraw amount plus the service fee. Return True on success."""
+    if amount <= 0 or acc_id not in ACCOUNT_DATA:
         return False
-    if account_data[acc_id]["balance"] < amount + service_fee:
+    total = amount + SERVICE_FEE
+    if ACCOUNT_DATA[acc_id]["balance"] < total:
         return False
-    else:
-        account_data[acc_id]["balance"] -= amount + service_fee
-        return True
+    ACCOUNT_DATA[acc_id]["balance"] -= total
+    return True
 
 
 def compute_bonus(acc_id, rate):
-    bal = account_data[acc_id]["balance"]
-    bonus = bal * rate
-    return bonus
+    """Return the promotional bonus: balance multiplied by rate."""
+    return ACCOUNT_DATA[acc_id]["balance"] * rate
 
 
 def get_hash(pin, salt=None):
+    """Return a salted PBKDF2-SHA256 hash of the PIN as 'salt:digest'."""
     if salt is None:
         salt = secrets.token_bytes(16)
     digest = hashlib.pbkdf2_hmac("sha256", pin.encode(), salt, 600_000)
@@ -50,19 +54,21 @@ def get_hash(pin, salt=None):
 
 
 def generate_temp_pin():
+    """Return a cryptographically secure 4-digit temporary PIN."""
     return secrets.randbelow(9000) + 1000
 
 
 def backup_data(filename="backup.txt"):
-    f = open(filename, "w")
-    f.write(str(account_data))
-    f.close()
+    """Write the ledger to a file."""
+    with open(filename, "w", encoding="utf-8") as file:
+        file.write(str(ACCOUNT_DATA))
     print("Backup complete:", filename)
 
 
 def main():
+    """Run a small demonstration of the account system."""
     admin_token = os.environ.get("BANK_ADMIN_TOKEN")
-    createAccount("A01", "Alice", 1000)
+    create_account("A01", "Alice", 1000)
     deposit("A01", 500)
     withdraw("A01", 200)
     print("Bonus:", compute_bonus("A01", 0.05))
@@ -72,4 +78,5 @@ def main():
     print("Token initialized:", admin_token is not None)
 
 
-main()
+if __name__ == "__main__":
+    main()
